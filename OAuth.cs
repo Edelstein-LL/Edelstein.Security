@@ -7,15 +7,14 @@ namespace Edelstein.Security;
 
 public static partial class OAuth
 {
-    private const string OAuthVersion = "1.0";
-    private const string OAuthHmacSignatureMethod = "HMAC-SHA1";
-    private const string OAuthRsaSignatureMethod = "RSA-SHA1";
-    private const string OAuthConsumerKey = "232610769078541";
+    private const string Version = "1.0";
+    private const string HmacSignatureMethod = "HMAC-SHA1";
+    private const string RsaSignatureMethod = "RSA-SHA1";
+    private const string ConsumerKey = "232610769078541";
 
     private const string SecretHmacKey = "d8f68e284efdf60bbaec2d225c0cfd42";
-    private static readonly byte[] SecretHmacKeyBytes = Encoding.UTF8.GetBytes(SecretHmacKey);
 
-    private const int OAuthTimeoutSeconds = 30;
+    private const int TimeoutSeconds = 30;
 
     [GeneratedRegex("(.+)=\"(.+)\"")]
     private static partial Regex OAuthHeaderValueRegex();
@@ -53,7 +52,7 @@ public static partial class OAuth
         Dictionary<string, string> oauthValues = new()
         {
             ["oauth_body_hash"] = bodyHash,
-            ["oauth_consumer_key"] = OAuthConsumerKey,
+            ["oauth_consumer_key"] = ConsumerKey,
             ["oauth_nonce"] = Guid.NewGuid().ToString().Replace("-", ""),
             ["oauth_signature_method"] = "HMAC-SHA1",
             ["oauth_timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
@@ -91,10 +90,10 @@ public static partial class OAuth
     {
         userId = null;
 
-        if (!xoauthRequestorId.StartsWith(OAuthConsumerKey))
+        if (!xoauthRequestorId.StartsWith(ConsumerKey))
             return false;
 
-        userId = xoauthRequestorId[OAuthConsumerKey.Length..];
+        userId = xoauthRequestorId[ConsumerKey.Length..];
 
         return true;
     }
@@ -114,11 +113,11 @@ public static partial class OAuth
         bool ignoreTimestamp = false)
     {
         if (!oauthValues.TryGetValue("oauth_version", out string? oauthVersion) ||
-            oauthVersion != OAuthVersion)
+            oauthVersion != Version)
             return false;
 
         if (!oauthValues.TryGetValue("oauth_signature_method", out string? oauthSignatureMethod) ||
-            oauthSignatureMethod != OAuthHmacSignatureMethod)
+            oauthSignatureMethod != HmacSignatureMethod)
             return false;
 
         // TODO: Check if nonce is not reused (is actually needed?)
@@ -133,7 +132,7 @@ public static partial class OAuth
             return false;
 
         if (!oauthValues.TryGetValue("oauth_consumer_key", out string? oauthConsumerKey) ||
-            oauthConsumerKey != OAuthConsumerKey)
+            oauthConsumerKey != ConsumerKey)
             return false;
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
@@ -143,7 +142,7 @@ public static partial class OAuth
 
         if (!ignoreTimestamp && (!Int64.TryParse(oauthTimestamp, out long oauthTimestampLong) ||
             oauthTimestampLong > now.ToUnixTimeSeconds() ||
-            oauthTimestampLong < (now - TimeSpan.FromSeconds(OAuthTimeoutSeconds)).ToUnixTimeSeconds()))
+            oauthTimestampLong < (now - TimeSpan.FromSeconds(TimeoutSeconds)).ToUnixTimeSeconds()))
             return false;
 
         if (!oauthValues.TryGetValue("oauth_signature", out string? oauthSignature))
@@ -162,11 +161,11 @@ public static partial class OAuth
         bool ignoreTimestamp = false)
     {
         if (!oauthValues.TryGetValue("oauth_version", out string? oauthVersion) ||
-            oauthVersion != OAuthVersion)
+            oauthVersion != Version)
             return false;
 
         if (!oauthValues.TryGetValue("oauth_signature_method", out string? oauthSignatureMethod) ||
-            oauthSignatureMethod != OAuthRsaSignatureMethod)
+            oauthSignatureMethod != RsaSignatureMethod)
             return false;
 
         // TODO: Check if nonce is not reused (is actually needed?)
@@ -181,7 +180,7 @@ public static partial class OAuth
             return false;
 
         if (!oauthValues.TryGetValue("oauth_consumer_key", out string? oauthConsumerKey) ||
-            oauthConsumerKey != OAuthConsumerKey)
+            oauthConsumerKey != ConsumerKey)
             return false;
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
@@ -191,7 +190,7 @@ public static partial class OAuth
 
         if (!ignoreTimestamp && (!Int64.TryParse(oauthTimestamp, out long oauthTimestampLong) ||
             oauthTimestampLong > now.ToUnixTimeSeconds() ||
-            oauthTimestampLong < (now - TimeSpan.FromSeconds(OAuthTimeoutSeconds)).ToUnixTimeSeconds()))
+            oauthTimestampLong < (now - TimeSpan.FromSeconds(TimeoutSeconds)).ToUnixTimeSeconds()))
             return false;
 
         if (!oauthValues.TryGetValue("oauth_signature", out string? oauthSignature))
