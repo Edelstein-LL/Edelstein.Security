@@ -141,7 +141,7 @@ public static partial class OAuth
             return false;
 
         if (!ignoreTimestamp && (!Int64.TryParse(oauthTimestamp, out long oauthTimestampLong) ||
-            oauthTimestampLong > now.ToUnixTimeSeconds() ||
+            oauthTimestampLong > (now + TimeSpan.FromSeconds(TimeoutSeconds)).ToUnixTimeSeconds() ||
             oauthTimestampLong < (now - TimeSpan.FromSeconds(TimeoutSeconds)).ToUnixTimeSeconds()))
             return false;
 
@@ -189,7 +189,7 @@ public static partial class OAuth
             return false;
 
         if (!ignoreTimestamp && (!Int64.TryParse(oauthTimestamp, out long oauthTimestampLong) ||
-            oauthTimestampLong > now.ToUnixTimeSeconds() ||
+            oauthTimestampLong > (now + TimeSpan.FromSeconds(TimeoutSeconds)).ToUnixTimeSeconds() ||
             oauthTimestampLong < (now - TimeSpan.FromSeconds(TimeoutSeconds)).ToUnixTimeSeconds()))
             return false;
 
