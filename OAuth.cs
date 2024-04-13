@@ -21,6 +21,8 @@ public static partial class OAuth
 
     public static string BuildStringToSign(string httpMethod, string url, Dictionary<string, string> oauthValues)
     {
+        Uri typedUri = new(url);
+
         List<string> encodedValues = [];
 
         foreach (KeyValuePair<string, string> oauthValuePair in oauthValues.OrderBy(x => x.Key))
@@ -28,7 +30,7 @@ public static partial class OAuth
             if (oauthValuePair.Key == "oauth_signature")
                 continue;
 
-            encodedValues.Add($"{oauthValuePair.Key}={Uri.EscapeDataString(oauthValuePair.Value)}");
+            encodedValues.Add($"{Uri.EscapeDataString(oauthValuePair.Key)}={Uri.EscapeDataString(oauthValuePair.Value)}");
         }
 
         string encodedOauthValues = String.Join("&", encodedValues);
@@ -36,7 +38,7 @@ public static partial class OAuth
         return String.Join("&", new List<string>
         {
             httpMethod,
-            url,
+            typedUri.GetLeftPart(UriPartial.Path),
             encodedOauthValues
         }.Select(Uri.EscapeDataString));
     }
@@ -59,7 +61,16 @@ public static partial class OAuth
             ["oauth_version"] = "1.0"
         };
 
-        oauthValues["oauth_signature"] = Sign(httpMethod, url, oauthValues);
+        Uri typedUri = new(url);
+        string query = typedUri.Query.Length > 0 ? typedUri.Query[1..] : "";
+        foreach (string queryItems in query.Split("&", StringSplitOptions.RemoveEmptyEntries))
+        {
+            string[] keyValuePair = queryItems.Split("=");
+
+            oauthValues.Add(keyValuePair[0], keyValuePair.Length == 1 ? "" : keyValuePair[1]);
+        }
+
+        oauthValues["oauth_signature"] = Sign(httpMethod, typedUri.GetLeftPart(UriPartial.Path), oauthValues.OrderBy(x => x.Key).ToDictionary());
 
         return BuildOAuthHeaderFromValues(oauthValues);
     }
