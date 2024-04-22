@@ -70,7 +70,8 @@ public static partial class OAuth
             oauthValues.Add(keyValuePair[0], keyValuePair.Length == 1 ? "" : keyValuePair[1]);
         }
 
-        oauthValues["oauth_signature"] = Sign(httpMethod, typedUri.GetLeftPart(UriPartial.Path), oauthValues.OrderBy(x => x.Key).ToDictionary());
+        oauthValues["oauth_signature"] =
+            Sign(httpMethod, typedUri.GetLeftPart(UriPartial.Path), oauthValues.OrderBy(x => x.Key).ToDictionary());
 
         return BuildOAuthHeaderFromValues(oauthValues);
     }
