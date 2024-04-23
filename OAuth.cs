@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -81,7 +82,13 @@ public static partial class OAuth
 
     public static Dictionary<string, string> BuildOAuthValuesFromHeader(string header)
     {
-        header = header[6..];
+        if (!AuthenticationHeaderValue.TryParse(header, out AuthenticationHeaderValue? authHeaderValue))
+            return new Dictionary<string, string>();
+
+        if (!authHeaderValue.Scheme.Equals("oauth", StringComparison.OrdinalIgnoreCase) || authHeaderValue.Parameter is null)
+            return new Dictionary<string, string>();
+
+        header = authHeaderValue.Parameter;
 
         Dictionary<string, string> values = new();
 
