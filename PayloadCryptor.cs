@@ -47,4 +47,20 @@ public static class PayloadCryptor
 
         return Convert.ToBase64String(encryptedDataStream.ToArray());
     }
+
+    public static async Task Encrypt(Stream inputStream, Stream outputStream)
+    {
+        using Aes aes = Aes.Create();
+        aes.GenerateIV();
+
+        using ICryptoTransform encryptor = aes.CreateEncryptor(AesKeyBytes, aes.IV);
+        await using CryptoStream base64Stream = new(outputStream, new ToBase64Transform(), CryptoStreamMode.Write);
+        await using CryptoStream cryptoStream = new(base64Stream, encryptor, CryptoStreamMode.Write);
+
+        await base64Stream.WriteAsync(aes.IV.AsMemory()).ConfigureAwait(false);
+
+        await inputStream.CopyToAsync(cryptoStream).ConfigureAwait(false);
+
+        await cryptoStream.FlushFinalBlockAsync().ConfigureAwait(false);
+    }
 }
