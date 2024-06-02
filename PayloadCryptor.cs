@@ -1,5 +1,3 @@
-using CommunityToolkit.HighPerformance;
-
 using System.Security.Cryptography;
 using System.Text;
 
@@ -12,15 +10,16 @@ public static class PayloadCryptor
 
     public static string Decrypt(string encryptedData)
     {
-        byte[] encryptedDataBytes = Convert.FromBase64String(encryptedData);
+        using MemoryStream encryptedStream = new(Convert.FromBase64String(encryptedData));
 
         using Aes aes = Aes.Create();
 
-        byte[] iv = encryptedDataBytes[..16];
+        byte[] iv = new byte[16];
+        _ = encryptedStream.Read(iv);
 
         using ICryptoTransform decryptor = aes.CreateDecryptor(AesKeyBytes, iv);
 
-        using CryptoStream cryptoStream = new(encryptedDataBytes.AsMemory(16).AsStream(), decryptor, CryptoStreamMode.Read);
+        using CryptoStream cryptoStream = new(encryptedStream, decryptor, CryptoStreamMode.Read);
         using MemoryStream decryptedDataStream = new();
 
         cryptoStream.CopyTo(decryptedDataStream);
@@ -28,7 +27,7 @@ public static class PayloadCryptor
         return Encoding.UTF8.GetString(decryptedDataStream.ToArray());
     }
 
-    public static string Encrypt(string data)
+    public static async Task<string> EncryptAsync(string data)
     {
         byte[] dataBytes = Encoding.UTF8.GetBytes(data);
 
@@ -38,17 +37,18 @@ public static class PayloadCryptor
         using ICryptoTransform encryptor = aes.CreateEncryptor(AesKeyBytes, aes.IV);
 
         using MemoryStream encryptedDataStream = new();
-        using CryptoStream cryptoStream = new(encryptedDataStream, encryptor, CryptoStreamMode.Write);
+        await using CryptoStream base64Stream = new(encryptedDataStream, new ToBase64Transform(), CryptoStreamMode.Write);
+        await using CryptoStream cryptoStream = new(base64Stream, encryptor, CryptoStreamMode.Write);
 
-        aes.IV.AsMemory().AsStream().CopyTo(encryptedDataStream);
-        dataBytes.AsMemory().AsStream().CopyTo(cryptoStream);
+        await base64Stream.WriteAsync(aes.IV);
+        await cryptoStream.WriteAsync(dataBytes);
 
-        cryptoStream.FlushFinalBlock();
+        await cryptoStream.FlushFinalBlockAsync();
 
-        return Convert.ToBase64String(encryptedDataStream.ToArray());
+        return Encoding.UTF8.GetString(encryptedDataStream.ToArray());
     }
 
-    public static async Task Encrypt(Stream inputStream, Stream outputStream)
+    public static async Task EncryptAsync(Stream inputStream, Stream outputStream)
     {
         using Aes aes = Aes.Create();
         aes.GenerateIV();
@@ -57,7 +57,7 @@ public static class PayloadCryptor
         await using CryptoStream base64Stream = new(outputStream, new ToBase64Transform(), CryptoStreamMode.Write);
         await using CryptoStream cryptoStream = new(base64Stream, encryptor, CryptoStreamMode.Write);
 
-        await base64Stream.WriteAsync(aes.IV.AsMemory()).ConfigureAwait(false);
+        await base64Stream.WriteAsync(aes.IV).ConfigureAwait(false);
 
         await inputStream.CopyToAsync(cryptoStream).ConfigureAwait(false);
 
